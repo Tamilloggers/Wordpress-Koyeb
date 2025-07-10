@@ -4,7 +4,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 ENV WORDPRESS_VERSION=6.5.3
 ENV APACHE_SERVERNAME=localhost
 
-# Install dependencies
+# Install dependencies with SSL support
 RUN apt-get update && apt-get install -y \
     apache2 \
     curl \
@@ -22,6 +22,7 @@ RUN apt-get update && apt-get install -y \
     libapache2-mod-php \
     mariadb-client \
     pwgen \
+    openssl \
     && rm -rf /var/lib/apt/lists/*
 
 # Install WordPress
@@ -30,13 +31,19 @@ RUN curl -o /tmp/wordpress.zip https://wordpress.org/wordpress-${WORDPRESS_VERSI
     mv /tmp/wordpress/* /var/www/html && \
     rm -rf /tmp/*
 
+# Create SSL directory
+RUN mkdir -p /etc/mysql-ssl && \
+    chown www-data:www-data /etc/mysql-ssl && \
+    chmod 700 /etc/mysql-ssl
+
 # Copy setup script
 COPY setup-wordpress.sh /usr/local/bin/
 RUN chmod +x /usr/local/bin/setup-wordpress.sh
 
 # Configure Apache
 RUN echo "ServerName ${APACHE_SERVERNAME}" >> /etc/apache2/apache2.conf && \
-    a2enmod rewrite && \
+    a2enmod rewrite ssl && \
+    a2ensite default-ssl && \
     echo '<Directory /var/www/html/>\n\
     AllowOverride All\n\
 </Directory>' >> /etc/apache2/apache2.conf
@@ -45,7 +52,7 @@ RUN echo "ServerName ${APACHE_SERVERNAME}" >> /etc/apache2/apache2.conf && \
 RUN chown -R www-data:www-data /var/www/html && \
     chmod -R 755 /var/www/html
 
-EXPOSE 80
+EXPOSE 80 443
 
 ENTRYPOINT ["setup-wordpress.sh"]
 CMD ["apachectl", "-D", "FOREGROUND"]
