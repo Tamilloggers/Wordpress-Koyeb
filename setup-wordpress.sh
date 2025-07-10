@@ -1,6 +1,10 @@
 #!/bin/bash
 set -eo pipefail
 
+# Configure Apache ServerName
+echo "ServerName localhost" >> /etc/apache2/apache2.conf
+
+# Rest of your existing script...
 WP_CONFIG="/var/www/html/wp-config.php"
 WP_CONFIG_SAMPLE="/usr/src/wordpress/wp-config-sample.php"
 
