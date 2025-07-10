@@ -8,7 +8,7 @@ echo "ServerName ${APACHE_SERVERNAME}" >> /etc/apache2/apache2.conf
 
 # Configure wp-config.php
 if [ ! -f "$WP_CONFIG" ]; then
-    echo "Generating wp-config.php with SSL support..."
+    echo "Generating wp-config.php with CA-only SSL..."
     cp /var/www/html/wp-config-sample.php "$WP_CONFIG"
 
     # Parse host and port
@@ -24,12 +24,10 @@ if [ ! -f "$WP_CONFIG" ]; then
     # Add custom port
     echo "define('DB_PORT', '$DB_PORT');" >> "$WP_CONFIG"
 
-    # Add SSL configuration
-    echo "// Aiven MySQL SSL Configuration" >> "$WP_CONFIG"
+    # Minimal SSL configuration (CA-only)
+    echo "// Aiven MySQL SSL with CA-only verification" >> "$WP_CONFIG"
     echo "define('MYSQL_CLIENT_FLAGS', MYSQLI_CLIENT_SSL);" >> "$WP_CONFIG"
-    echo "define('MYSQL_SSL_CA', '${MYSQL_SSL_CA}');" >> "$WP_CONFIG"
-    echo "define('MYSQL_SSL_CERT', '${MYSQL_SSL_CERT}');" >> "$WP_CONFIG"
-    echo "define('MYSQL_SSL_KEY', '${MYSQL_SSL_KEY}');" >> "$WP_CONFIG"
+    echo "define('MYSQL_SSL_CA', '/etc/mysql-ssl/ca.pem');" >> "$WP_CONFIG"
 
     # Security keys
     for KEY in AUTH_KEY SECURE_AUTH_KEY LOGGED_IN_KEY NONCE_KEY AUTH_SALT SECURE_AUTH_SALT LOGGED_IN_SALT NONCE_SALT; do
@@ -40,19 +38,16 @@ if [ ! -f "$WP_CONFIG" ]; then
     sed -i "s/define( 'WP_DEBUG', false );/define( 'WP_DEBUG', ${WP_DEBUG:-false} );/" "$WP_CONFIG"
 
     # Site URLs
-    echo "define('WP_HOME', '${WP_HOME}');" >> "$WP_CONFIG"
-    echo "define('WP_SITEURL', '${WP_HOME}');" >> "$WP_CONFIG"
+    [ -n "$WP_HOME" ] && echo "define('WP_HOME', '$WP_HOME');" >> "$WP_CONFIG"
+    [ -n "$WP_HOME" ] && echo "define('WP_SITEURL', '$WP_HOME');" >> "$WP_CONFIG"
 
     chown www-data:www-data "$WP_CONFIG"
-    chmod 640 "$WP_CONFIG"  # More restrictive permissions for SSL
+    chmod 640 "$WP_CONFIG"
 fi
 
-# Copy SSL certificates to container
-if [ -f "${MYSQL_SSL_CA}" ]; then
-    mkdir -p /etc/mysql-ssl
-    cp "${MYSQL_SSL_CA}" "${MYSQL_SSL_CERT}" "${MYSQL_SSL_KEY}" /etc/mysql-ssl/
-    chmod 600 /etc/mysql-ssl/*
-    chown -R www-data:www-data /etc/mysql-ssl
-fi
+# Ensure SSL directory exists
+mkdir -p /etc/mysql-ssl
+chmod 750 /etc/mysql-ssl
+chown www-data:www-data /etc/mysql-ssl
 
 exec "$@"
