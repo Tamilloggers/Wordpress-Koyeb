@@ -23,6 +23,7 @@ RUN apt-get update && apt-get install -y \
 RUN curl -o /tmp/wordpress.zip https://wordpress.org/wordpress-${WORDPRESS_VERSION}.zip && \
     unzip /tmp/wordpress.zip -d /tmp && \
     mv /tmp/wordpress/* /var/www/html && \
+    rm -f /var/www/html/index.html && \
     rm -rf /tmp/*
 
 RUN chown -R www-data:www-data /var/www/html && \
