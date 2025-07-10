@@ -11,6 +11,9 @@ RUN mkdir -p /etc/mysql-ssl && \
     chown www-data:www-data /etc/mysql-ssl && \
     chmod 750 /etc/mysql-ssl
 
+# Set Apache ServerName
+RUN echo "ServerName localhost" >> /etc/apache2/apache2.conf
+
 # Copy scripts and CA cert
 COPY setup-wordpress.sh healthcheck.sh /usr/local/bin/
 COPY aiven-ca.pem /etc/mysql-ssl/ca.pem
@@ -18,7 +21,6 @@ RUN chmod +x /usr/local/bin/*.sh && \
     chmod 600 /etc/mysql-ssl/ca.pem && \
     chown www-data:www-data /etc/mysql-ssl/ca.pem
 
-# Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD /usr/local/bin/healthcheck.sh
 
